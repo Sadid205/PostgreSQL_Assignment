@@ -47,32 +47,60 @@ INSERT INTO sightings(species_id,ranger_id,location,sighting_time,notes)VALUES
 (1,2,'Snowfall Pass','2024-05-18 18:30:00',NULL);
 
 
--- 1️⃣ Register a new ranger with provided data with name = 'Derek Fox' and region = 'Coastal Plains'
+--Problem 1️⃣
 INSERT INTO rangers(name,region)VALUES
 ('Derek Fox','Coastal Plains');
 
--- 2️⃣ Count unique species ever sighted.
+--Problem 2️⃣
 SELECT count(DISTINCT species_id)as unique_species_count  FROM sightings;
 
 
--- 3️⃣ Find all sightings where the location includes "Pass".
+--Problem 3️⃣
 SELECT * FROM sightings WHERE location ILIKE '%Pass%';
 
--- 4️⃣ List each ranger's name and their total number of sightings.
+--Problem 4️⃣
 SELECT name,count(*) FROM rangers as r
 JOIN sightings as s ON r.ranger_id = s.ranger_id
 GROUP BY name
 ORDER BY name;
 
--- 5️⃣ List species that have never been sighted.
+--Problem 5️⃣
 SELECT sp.common_name FROM species as sp
 left JOIN sightings as si ON sp.species_id = si.species_id
 WHERE si.species_id is NULL;
 
--- 6️⃣ Show the most recent 2 sightings.
+--Problem 6️⃣
 SELECT sp.common_name,si.sighting_time,r.name FROM sightings as si
 JOIN species as sp ON si.species_id = sp.species_id 
 JOIN rangers as r ON si.ranger_id = r.ranger_id
 ORDER BY sighting_time DESC LIMIT 2;
 
--- 7️⃣ Update all species discovered before year 1800 to have status 'Historic'.
+--Problem 7️⃣
+UPDATE species
+SET conservation_status = 'Historic'
+WHERE extract(YEAR FROM discovery_date) < 1800;
+
+--Problem 8️⃣
+CREATE or replace FUNCTION set_label(sighting_time TIMESTAMP)
+RETURNS VARCHAR(20)
+LANGUAGE plpgsql
+AS
+$$
+    BEGIN
+        IF extract(HOUR FROM sighting_time) < 12 THEN
+            RETURN 'Morning';
+        ELSEIF extract(HOUR FROM sighting_time) >= 12 AND extract(HOUR FROM sighting_time) <= 17 THEN
+            RETURN 'Afternoon';
+        ELSEIF extract(HOUR FROM sighting_time) > 17 THEN
+            RETURN 'Evening';
+        END IF;
+    END;
+$$;
+
+SELECT sighting_id,set_label(sighting_time) as time_of_day FROM sightings;
+
+-- Problem 9️⃣
+DELETE FROM rangers
+WHERE ranger_id IN (SELECT r.ranger_id FROM sightings as si
+right JOIN rangers as r ON r.ranger_id = si.ranger_id
+WHERE si.ranger_id IS NULL);
